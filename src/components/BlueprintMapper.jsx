@@ -18,14 +18,109 @@ export default function BlueprintMapper() {
   const viewBoxWidth = 1000;
   const viewBoxHeight = 600;
 
+  // Calculate coordinates average to find a smart map center focus
+  const calculateCenter = (pts) => {
+    if (pts.length === 0) return { x: 0, y: 0 };
+    const sumX = pts.reduce((sum, p) => sum + p.x, 0);
+    const sumY = pts.reduce((sum, p) => sum + p.y, 0);
+    return {
+      x: Math.round(sumX / pts.length),
+      y: Math.round(sumY / pts.length)
+    };
+  };
+
   // Handle file upload and load as base64 URL or ObjectURL
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setBlueprintUrl(url);
+
+      // If it's an SVG, parse the shapes into zones
+      if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const svgText = event.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgText, 'image/svg+xml');
+            
+            const parsedZones = [];
+            
+            // 1. Parse polygons
+            const polygons = doc.getElementsByTagName('polygon');
+            for (let i = 0; i < polygons.length; i++) {
+              const poly = polygons[i];
+              const pointsAttr = poly.getAttribute('points');
+              if (pointsAttr) {
+                const id = poly.getAttribute('id') || `SVG-P${i + 1}`;
+                const name = poly.getAttribute('name') || `Stall ${id}`;
+                
+                // Parse points to find center
+                const pts = pointsAttr.trim().split(/\s+/).map(p => {
+                  const parts = p.split(',');
+                  const x = Number(parts[0]);
+                  const y = Number(parts[1]);
+                  return { x, y };
+                }).filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+                if (pts.length > 0) {
+                  const center = calculateCenter(pts);
+                  parsedZones.push({
+                    id: id.toUpperCase(),
+                    name: name,
+                    category: poly.getAttribute('category') || 'Exhibition Stall',
+                    points: pointsAttr,
+                    center: center
+                  });
+                }
+              }
+            }
+
+            // 2. Parse rects
+            const rects = doc.getElementsByTagName('rect');
+            for (let i = 0; i < rects.length; i++) {
+              const rect = rects[i];
+              const x = Number(rect.getAttribute('x') || 0);
+              const y = Number(rect.getAttribute('y') || 0);
+              const w = Number(rect.getAttribute('width') || 0);
+              const h = Number(rect.getAttribute('height') || 0);
+              
+              if (w > 0 && h > 0) {
+                const id = rect.getAttribute('id') || `SVG-R${i + 1}`;
+                // Avoid capturing grid def rects or outer border rects
+                if (id.toLowerCase().includes('grid') || w > 980) continue;
+
+                const name = rect.getAttribute('name') || `Stall ${id}`;
+                const pointsStr = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x},${y + h}`;
+                const center = {
+                  x: Math.round(x + w / 2),
+                  y: Math.round(y + h / 2)
+                };
+
+                parsedZones.push({
+                  id: id.toUpperCase(),
+                  name: name,
+                  category: rect.getAttribute('category') || 'Exhibition Stall',
+                  points: pointsStr,
+                  center: center
+                });
+              }
+            }
+
+            if (parsedZones.length > 0) {
+              setZones(prev => [...prev, ...parsedZones]);
+              alert(`Successfully imported ${parsedZones.length} clickable shapes from your SVG blueprint!`);
+            }
+          } catch (err) {
+            console.error('Error parsing SVG:', err);
+          }
+        };
+        reader.readAsText(file);
+      }
     }
   };
+
 
   // Convert client cursor coordinate to relative SVG coordinate
   const getSVGCoords = (e) => {
@@ -75,15 +170,7 @@ export default function BlueprintMapper() {
     setPoints([]);
   };
 
-  // Calculate coordinates average to find a smart map center focus
-  const calculateCenter = (pts) => {
-    const sumX = pts.reduce((sum, p) => sum + p.x, 0);
-    const sumY = pts.reduce((sum, p) => sum + p.y, 0);
-    return {
-      x: Math.round(sumX / pts.length),
-      y: Math.round(sumY / pts.length)
-    };
-  };
+
 
   const handleSaveZone = (e) => {
     e.preventDefault();
