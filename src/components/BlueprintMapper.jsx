@@ -29,6 +29,23 @@ export default function BlueprintMapper() {
     };
   };
 
+  // Validate if a shape fits exhibitor stall dimension limits
+  const isValidStallShape = (pts) => {
+    if (pts.length < 3) return false;
+    const xs = pts.map(p => p.x);
+    const ys = pts.map(p => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    
+    const w = maxX - minX;
+    const h = maxY - minY;
+    
+    // Stalls should be between 20px and 350px in size (width & height)
+    return w >= 20 && w <= 350 && h >= 20 && h <= 350;
+  };
+
   // Handle file upload and load as base64 URL or ObjectURL
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -64,7 +81,7 @@ export default function BlueprintMapper() {
                   return { x, y };
                 }).filter(p => !isNaN(p.x) && !isNaN(p.y));
 
-                if (pts.length > 0) {
+                if (pts.length > 0 && isValidStallShape(pts)) {
                   const center = calculateCenter(pts);
                   parsedZones.push({
                     id: id.toUpperCase(),
@@ -91,20 +108,29 @@ export default function BlueprintMapper() {
                 // Avoid capturing grid def rects or outer border rects
                 if (id.toLowerCase().includes('grid') || w > 980) continue;
 
-                const name = rect.getAttribute('name') || `Stall ${id}`;
-                const pointsStr = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x},${y + h}`;
-                const center = {
-                  x: Math.round(x + w / 2),
-                  y: Math.round(y + h / 2)
-                };
+                const rectPts = [
+                  { x, y },
+                  { x: x + w, y },
+                  { x: x + w, y: y + h },
+                  { x, y: y + h }
+                ];
 
-                parsedZones.push({
-                  id: id.toUpperCase(),
-                  name: name,
-                  category: rect.getAttribute('category') || 'Exhibition Stall',
-                  points: pointsStr,
-                  center: center
-                });
+                if (isValidStallShape(rectPts)) {
+                  const name = rect.getAttribute('name') || `Stall ${id}`;
+                  const pointsStr = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x},${y + h}`;
+                  const center = {
+                    x: Math.round(x + w / 2),
+                    y: Math.round(y + h / 2)
+                  };
+
+                  parsedZones.push({
+                    id: id.toUpperCase(),
+                    name: name,
+                    category: rect.getAttribute('category') || 'Exhibition Stall',
+                    points: pointsStr,
+                    center: center
+                  });
+                }
               }
             }
 
@@ -126,41 +152,50 @@ export default function BlueprintMapper() {
               }
 
               if (d) {
-                const pts = [];
-                // Extract all numbers (including decimals and negatives) from path string
-                const numbers = d.replace(/[a-df-z]/gi, ' ').trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+                // Split compound paths into individual sub-path strings
+                const subPaths = d.split(/[Mm]/);
                 
-                // Pair numbers into sequential {x, y} coordinates
-                for (let j = 0; j < numbers.length; j += 2) {
-                  if (numbers[j] !== undefined && numbers[j+1] !== undefined) {
-                    pts.push({ x: Math.round(numbers[j]), y: Math.round(numbers[j+1]) });
-                  }
-                }
+                subPaths.forEach((subPath, subIdx) => {
+                  if (!subPath.trim()) return;
 
-                // Deduplicate consecutive or identical points
-                const uniquePts = pts.filter((p, index, self) => 
-                  index === self.findIndex((t) => t.x === p.x && t.y === p.y)
-                );
-
-                if (uniquePts.length >= 3) {
-                  // Sample down complex shapes/curves to max 12 coordinates to prevent bloated polygons
-                  const step = Math.max(1, Math.floor(uniquePts.length / 12));
-                  const limitedPts = [];
-                  for (let k = 0; k < uniquePts.length; k += step) {
-                    limitedPts.push(uniquePts[k]);
-                  }
-
-                  const pointsStr = limitedPts.map(p => `${p.x},${p.y}`).join(' ');
-                  const center = calculateCenter(limitedPts);
+                  const pts = [];
+                  // Extract all numbers (including decimals and negatives) from path string
+                  const numbers = subPath.replace(/[a-df-z]/gi, ' ').trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
                   
-                  parsedZones.push({
-                    id: id.toUpperCase(),
-                    name: path.getAttribute('name') || `Stall ${id.toUpperCase()}`,
-                    category: path.getAttribute('category') || 'Exhibition Stall',
-                    points: pointsStr,
-                    center: center
-                  });
-                }
+                  // Pair numbers into sequential {x, y} coordinates
+                  for (let j = 0; j < numbers.length; j += 2) {
+                    if (numbers[j] !== undefined && numbers[j+1] !== undefined) {
+                      pts.push({ x: Math.round(numbers[j]), y: Math.round(numbers[j+1]) });
+                    }
+                  }
+
+                  // Deduplicate consecutive or identical points
+                  const uniquePts = pts.filter((p, index, self) => 
+                    index === self.findIndex((t) => t.x === p.x && t.y === p.y)
+                  );
+
+                  if (uniquePts.length >= 3 && isValidStallShape(uniquePts)) {
+                    // Sample down complex shapes/curves to max 12 coordinates to prevent bloated polygons
+                    const step = Math.max(1, Math.floor(uniquePts.length / 12));
+                    const limitedPts = [];
+                    for (let k = 0; k < uniquePts.length; k += step) {
+                      limitedPts.push(uniquePts[k]);
+                    }
+
+                    const pointsStr = limitedPts.map(p => `${p.x},${p.y}`).join(' ');
+                    const center = calculateCenter(limitedPts);
+                    
+                    const subId = subPaths.length > 2 ? `${id}-S${subIdx}` : id;
+                    
+                    parsedZones.push({
+                      id: subId.toUpperCase(),
+                      name: path.getAttribute('name') || `Stall ${subId.toUpperCase()}`,
+                      category: path.getAttribute('category') || 'Exhibition Stall',
+                      points: pointsStr,
+                      center: center
+                    });
+                  }
+                });
               }
             }
 
