@@ -108,6 +108,62 @@ export default function BlueprintMapper() {
               }
             }
 
+            // 3. Parse paths (SVG shape paths)
+            const paths = doc.getElementsByTagName('path');
+            for (let i = 0; i < paths.length; i++) {
+              const path = paths[i];
+              const d = path.getAttribute('d');
+              const id = path.getAttribute('id') || `SVG-H${i + 1}`;
+
+              // Skip defs/grid patterns or guide lines
+              if (
+                id.toLowerCase().includes('grid') || 
+                id.toLowerCase().includes('axis') || 
+                id.toLowerCase().includes('border') || 
+                id.toLowerCase().includes('guide')
+              ) {
+                continue;
+              }
+
+              if (d) {
+                const pts = [];
+                // Extract all numbers (including decimals and negatives) from path string
+                const numbers = d.replace(/[a-df-z]/gi, ' ').trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+                
+                // Pair numbers into sequential {x, y} coordinates
+                for (let j = 0; j < numbers.length; j += 2) {
+                  if (numbers[j] !== undefined && numbers[j+1] !== undefined) {
+                    pts.push({ x: Math.round(numbers[j]), y: Math.round(numbers[j+1]) });
+                  }
+                }
+
+                // Deduplicate consecutive or identical points
+                const uniquePts = pts.filter((p, index, self) => 
+                  index === self.findIndex((t) => t.x === p.x && t.y === p.y)
+                );
+
+                if (uniquePts.length >= 3) {
+                  // Sample down complex shapes/curves to max 12 coordinates to prevent bloated polygons
+                  const step = Math.max(1, Math.floor(uniquePts.length / 12));
+                  const limitedPts = [];
+                  for (let k = 0; k < uniquePts.length; k += step) {
+                    limitedPts.push(uniquePts[k]);
+                  }
+
+                  const pointsStr = limitedPts.map(p => `${p.x},${p.y}`).join(' ');
+                  const center = calculateCenter(limitedPts);
+                  
+                  parsedZones.push({
+                    id: id.toUpperCase(),
+                    name: path.getAttribute('name') || `Stall ${id.toUpperCase()}`,
+                    category: path.getAttribute('category') || 'Exhibition Stall',
+                    points: pointsStr,
+                    center: center
+                  });
+                }
+              }
+            }
+
             if (parsedZones.length > 0) {
               setZones(prev => [...prev, ...parsedZones]);
               alert(`Successfully imported ${parsedZones.length} clickable shapes from your SVG blueprint!`);
