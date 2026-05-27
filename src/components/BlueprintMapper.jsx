@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Upload, Scissors, Info, Trash2, 
   Copy, Check, RefreshCw, Layers, Sparkles 

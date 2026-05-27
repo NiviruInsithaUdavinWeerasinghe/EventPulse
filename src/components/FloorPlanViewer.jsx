@@ -51,26 +51,30 @@ export default function FloorPlanViewer({
     }, 450);
   };
 
-  // Run initial fit to screen
+  // Run initial fit to screen and handle resize
   useEffect(() => {
     handleResetZoom();
-    
+    window.addEventListener('resize', handleResetZoom);
+    return () => window.removeEventListener('resize', handleResetZoom);
+  }, []);
+
+  // Listen to custom canvas-zoom-in, canvas-zoom-out, and canvas-reset triggers
+  useEffect(() => {
     const zoomInListener = () => handleZoom(1.25);
     const zoomOutListener = () => handleZoom(0.8);
     const resetListener = () => handleResetZoom();
 
-    window.addEventListener('resize', handleResetZoom);
     window.addEventListener('canvas-zoom-in', zoomInListener);
     window.addEventListener('canvas-zoom-out', zoomOutListener);
     window.addEventListener('canvas-reset', resetListener);
 
     return () => {
-      window.removeEventListener('resize', handleResetZoom);
       window.removeEventListener('canvas-zoom-in', zoomInListener);
       window.removeEventListener('canvas-zoom-out', zoomOutListener);
       window.removeEventListener('canvas-reset', resetListener);
     };
   }, [scale, pan]);
+
 
 
   // Smoothly center the map on the active stall when selected
