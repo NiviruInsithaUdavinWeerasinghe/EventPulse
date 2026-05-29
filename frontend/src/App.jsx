@@ -4,7 +4,7 @@ import FloorPlanViewer from './components/FloorPlanViewer';
 import ControlPanel from './components/ControlPanel';
 import StallDetailsModal from './components/StallDetailsModal';
 import BlueprintMapper from './components/BlueprintMapper';
-import { Compass, Shield, Flame, Activity, Settings, Eye } from 'lucide-react';
+import { Compass, Shield, Flame, Activity, Settings, Eye, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('attendee'); // 'attendee' or 'organizer'
