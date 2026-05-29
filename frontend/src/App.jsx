@@ -39,11 +39,9 @@ export default function App() {
     fetchFloorPlan();
   }, []);
 
-  // Use persisted database zones if available, otherwise fallback to mock data
+  // Use persisted database zones if available, otherwise return empty array
   const currentStalls = useMemo(() => {
-    return activeFloorPlan && activeFloorPlan.zones && activeFloorPlan.zones.length > 0
-      ? activeFloorPlan.zones
-      : stallsData;
+    return activeFloorPlan && activeFloorPlan.zones ? activeFloorPlan.zones : [];
   }, [activeFloorPlan]);
 
   // Extract all categories dynamically based on active booths
@@ -153,75 +151,92 @@ export default function App() {
             <p className="text-sm font-semibold">Synchronizing Event Floor Plan...</p>
           </div>
         ) : activeTab === 'attendee' ? (
-          /* Attendee Mapping Dashboard Panel */
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            
-            {/* Left Control and Search Column */}
-            <div className="lg:col-span-1 flex flex-col gap-6">
-              <ControlPanel
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                categories={categories}
-                onZoomIn={() => window.dispatchEvent(new CustomEvent('canvas-zoom-in'))}
-                onZoomOut={() => window.dispatchEvent(new CustomEvent('canvas-zoom-out'))}
-                onResetZoom={() => window.dispatchEvent(new CustomEvent('canvas-reset'))}
-                stalls={filteredStalls}
-                activeStall={activeStall}
-                onSelectStall={handleSelectStall}
-              />
+          !activeFloorPlan ? (
+            /* Empty state when no plan has been uploaded yet */
+            <div className="glass-panel p-12 rounded-2xl text-center flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto my-12">
+              <Compass className="w-16 h-16 text-slate-500 animate-spin-slow stroke-[1.5]" />
+              <h2 className="text-2xl font-bold text-slate-200">No Active Floor Plan Published</h2>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-md">
+                The database does not contain any published event floor plan blueprint layouts. Switch to the **Organizer Mapper** tab in the top header to configure and upload your event blueprint hall map.
+              </p>
+              <button
+                onClick={() => setActiveTab('organizer')}
+                className="mt-2 bg-accent-blue hover:bg-accent-blue-dark text-white font-semibold py-2 px-5 rounded-lg shadow-lg shadow-blue-500/25 transition-all text-sm"
+              >
+                Go to Organizer Dashboard
+              </button>
             </div>
-
-            {/* Center Canvas Viewport Column */}
-            <div className="lg:col-span-3 flex flex-col gap-4 relative">
+          ) : (
+            /* Attendee Mapping Dashboard Panel */
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               
-              {/* Map canvas */}
-              <div className="relative flex-grow h-full">
-                <FloorPlanViewer
-                  stalls={currentStalls}
-                  nonStallZones={nonStallZones}
-                  landmarks={landmarks}
+              {/* Left Control and Search Column */}
+              <div className="lg:col-span-1 flex flex-col gap-6">
+                <ControlPanel
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  categories={categories}
+                  onZoomIn={() => window.dispatchEvent(new CustomEvent('canvas-zoom-in'))}
+                  onZoomOut={() => window.dispatchEvent(new CustomEvent('canvas-zoom-out'))}
+                  onResetZoom={() => window.dispatchEvent(new CustomEvent('canvas-reset'))}
+                  stalls={filteredStalls}
                   activeStall={activeStall}
                   onSelectStall={handleSelectStall}
-                  activeFloorPlan={activeFloorPlan}
                 />
+              </div>
 
-                {/* Float details panel card inside the map layout if space allows */}
+              {/* Center Canvas Viewport Column */}
+              <div className="lg:col-span-3 flex flex-col gap-4 relative">
+                
+                {/* Map canvas */}
+                <div className="relative flex-grow h-full">
+                  <FloorPlanViewer
+                    stalls={currentStalls}
+                    nonStallZones={[]}
+                    landmarks={[]}
+                    activeStall={activeStall}
+                    onSelectStall={handleSelectStall}
+                    activeFloorPlan={activeFloorPlan}
+                  />
+
+                  {/* Float details panel card inside the map layout if space allows */}
+                  {activeStall && (
+                    <div className="absolute top-4 right-4 z-30 max-w-sm w-full p-2 hidden sm:block">
+                      <StallDetailsModal
+                        stall={activeStall}
+                        onClose={handleCloseModal}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Fallback Display Overlay for Mobile viewport sizes */}
                 {activeStall && (
-                  <div className="absolute top-4 right-4 z-30 max-w-sm w-full p-2 hidden sm:block">
+                  <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 p-4 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shadow-2xl flex justify-center">
                     <StallDetailsModal
                       stall={activeStall}
                       onClose={handleCloseModal}
                     />
                   </div>
                 )}
-              </div>
 
-              {/* Fallback Display Overlay for Mobile viewport sizes */}
-              {activeStall && (
-                <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 p-4 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shadow-2xl flex justify-center">
-                  <StallDetailsModal
-                    stall={activeStall}
-                    onClose={handleCloseModal}
-                  />
+                {/* Interactive instruction banner */}
+                <div className="glass-panel p-3.5 rounded-xl text-xs text-slate-400 flex items-center justify-between">
+                  <p>
+                    💡 <strong>Interaction Guide:</strong> Drag or swipe anywhere inside the canvas to pan. Use mouse wheel / double-tap to zoom. Click individual stall zones to view real-time data & scheduled events.
+                  </p>
+                  <button
+                    onClick={() => alert("Help Center: Contact technical support at support@eventpulse.io")}
+                    className="text-accent-blue-light hover:text-accent-blue font-semibold hover:underline shrink-0 pl-4"
+                  >
+                    Get Help
+                  </button>
                 </div>
-              )}
-
-              {/* Interactive instruction banner */}
-              <div className="glass-panel p-3.5 rounded-xl text-xs text-slate-400 flex items-center justify-between">
-                <p>
-                  💡 <strong>Interaction Guide:</strong> Drag or swipe anywhere inside the canvas to pan. Use mouse wheel / double-tap to zoom. Click individual stall zones to view real-time data & scheduled events.
-                </p>
-                <button
-                  onClick={() => alert("Help Center: Contact technical support at support@eventpulse.io")}
-                  className="text-accent-blue-light hover:text-accent-blue font-semibold hover:underline shrink-0 pl-4"
-                >
-                  Get Help
-                </button>
               </div>
             </div>
-          </div>
+          )
         ) : (
           /* Organizer Draw/Mapper Panel Dashboard view */
           <div className="flex flex-col gap-4">
