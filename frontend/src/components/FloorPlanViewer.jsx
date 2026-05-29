@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Plus, Minus, RefreshCw, 
   MapPin, HelpCircle, AlertTriangle 
@@ -23,6 +23,17 @@ export default function FloorPlanViewer({
   // SVG Original dimensions
   const svgWidth = 1000;
   const svgHeight = 600;
+
+  const activeStallStyle = useMemo(() => {
+    if (!activeStall) return '';
+    return `
+      #blueprint-wrapper #${activeStall.id} {
+        fill: rgba(234, 88, 12, 0.35) !important;
+        stroke: #ea580c !important;
+        stroke-width: 3px !important;
+      }
+    `;
+  }, [activeStall]);
 
   // Fit to screen initial load & reset
   const handleResetZoom = () => {
@@ -247,37 +258,8 @@ export default function FloorPlanViewer({
   return (
     <div className="relative w-full h-full min-h-[450px] md:min-h-[550px] bg-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-2xl flex flex-col">
       {/* Dynamic inline SVG styling injection */}
-      {renderActiveSvgContent && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          #blueprint-wrapper svg path,
-          #blueprint-wrapper svg rect,
-          #blueprint-wrapper svg polygon,
-          #blueprint-wrapper svg circle {
-            cursor: pointer !important;
-            transition: all 0.2s ease !important;
-          }
-          #blueprint-wrapper svg path,
-          #blueprint-wrapper svg rect,
-          #blueprint-wrapper svg polygon {
-            fill: rgba(59, 130, 246, 0.08);
-            stroke: rgba(59, 130, 246, 0.3);
-            stroke-width: 1.5px;
-          }
-          #blueprint-wrapper svg path:hover,
-          #blueprint-wrapper svg rect:hover,
-          #blueprint-wrapper svg polygon:hover {
-            fill: rgba(59, 130, 246, 0.2) !important;
-            stroke: #3b82f6 !important;
-            stroke-width: 2px !important;
-          }
-          ${activeStall ? `
-            #blueprint-wrapper #${activeStall.id} {
-              fill: rgba(234, 88, 12, 0.35) !important;
-              stroke: #ea580c !important;
-              stroke-width: 3px !important;
-            }
-          ` : ''}
-        `}} />
+      {renderActiveSvgContent && activeStall && (
+        <style dangerouslySetInnerHTML={{ __html: activeStallStyle }} />
       )}
 
       {/* HUD Control Indicators */}
@@ -355,7 +337,7 @@ export default function FloorPlanViewer({
           <div
             id="blueprint-wrapper"
             onClick={handleSvgElementClick}
-            className="absolute origin-top-left w-full h-full flex items-center justify-center p-2"
+            className="absolute origin-top-left w-full h-full flex items-center justify-center p-2 attendee-svg-container"
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
               transition: isTransitioning ? 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)' : 'none'

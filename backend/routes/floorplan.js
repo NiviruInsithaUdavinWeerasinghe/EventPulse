@@ -94,7 +94,7 @@ router.post('/upload', upload.single('blueprint'), async (req, res) => {
 // PUT: Save/update the zones of the active floor plan
 router.put('/zones', async (req, res) => {
   try {
-    const { zones } = req.body;
+    const { zones, rawSvgContent } = req.body;
     if (!Array.isArray(zones)) {
       return res.status(400).json({ error: 'Zones must be an array' });
     }
@@ -105,10 +105,23 @@ router.put('/zones', async (req, res) => {
     }
 
     activePlan.zones = zones;
+    if (rawSvgContent) {
+      activePlan.rawSvgContent = rawSvgContent;
+    }
     await activePlan.save();
     res.json(activePlan);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update zones', details: err.message });
+  }
+});
+
+// DELETE: Reset/deactivate the active floor plan layout
+router.delete('/clear', async (req, res) => {
+  try {
+    await FloorPlan.updateMany({}, { isActive: false });
+    res.json({ message: 'All floor plan layouts deactivated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to clear layout', details: err.message });
   }
 });
 

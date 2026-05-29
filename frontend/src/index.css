@@ -10,6 +10,10 @@
   --color-accent-orange-dark: #c2410c;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   background-color: #020617; /* bg-slate-950 */
   color: #f1f5f9; /* text-slate-100 */
@@ -54,21 +58,87 @@ body {
   animation: map-pulse 2s infinite ease-in-out;
 }
 
-/* Custom scrollbar for exhibition stalls list */
+/* Premium global custom scrollbar available to both pages */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(15, 23, 42, 0.4);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 3px;
+  background: rgba(59, 130, 246, 0.35);
+  border-radius: 5px;
+  border: 2px solid #020617; /* Creates padding around the thumb */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.65);
+}
+
+/* Smooth custom animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-in-bottom {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Static Vector SVG styling rules for Organizer Mapper */
+#blueprint-wrapper svg path,
+#blueprint-wrapper svg rect,
+#blueprint-wrapper svg polygon,
+#blueprint-wrapper svg circle {
+  cursor: pointer !important;
+  transition: fill 0.15s ease, stroke 0.15s ease !important;
+}
+
+#blueprint-wrapper svg path:hover,
+#blueprint-wrapper svg rect:hover,
+#blueprint-wrapper svg polygon:hover,
+#blueprint-wrapper svg circle:hover {
+  fill: rgba(59, 130, 246, 0.25) !important;
+  stroke: #3b82f6 !important;
+  stroke-width: 2.5px !important;
+}
+
+/* Static Vector SVG rules for Attendee Viewer */
+.attendee-svg-container svg path,
+.attendee-svg-container svg rect,
+.attendee-svg-container svg polygon {
+  fill: rgba(59, 130, 246, 0.08);
+  stroke: rgba(59, 130, 246, 0.3);
+  stroke-width: 1.5px;
+  cursor: pointer !important;
+  transition: fill 0.15s ease, stroke 0.15s ease !important;
+}
+
+.attendee-svg-container svg path:hover,
+.attendee-svg-container svg rect:hover,
+.attendee-svg-container svg polygon:hover {
+  fill: rgba(59, 130, 246, 0.2) !important;
+  stroke: #3b82f6 !important;
+  stroke-width: 2px !important;
 }

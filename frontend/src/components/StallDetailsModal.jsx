@@ -1,11 +1,11 @@
 import React from 'react';
 import { X, User, Tag, Calendar, MapPin, ExternalLink, Info } from 'lucide-react';
 
-export default function StallDetailsModal({ stall, onClose }) {
+export default function StallDetailsModal({ stall, onClose, showNotification }) {
   if (!stall) return null;
 
   return (
-    <div className="glass-modal text-slate-100 rounded-xl p-5 shadow-2xl relative border border-slate-700/50 flex flex-col gap-4 text-left max-w-sm w-full transition-all duration-300 transform scale-100 opacity-100">
+    <div className="glass-modal text-slate-100 rounded-xl p-5 shadow-2xl relative border border-slate-700/50 flex flex-col gap-4 text-left max-w-sm w-full animate-scale-in">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex gap-2.5 items-center">
@@ -89,7 +89,11 @@ export default function StallDetailsModal({ stall, onClose }) {
           Dismiss
         </button>
         <button 
-          onClick={() => alert(`Connecting with ${stall.exhibitor || 'Representative'}...`)}
+          onClick={() => {
+            if (showNotification) {
+              showNotification(`Connecting with ${stall.exhibitor || 'Representative'}...`, 'info');
+            }
+          }}
           className="bg-accent-blue hover:bg-accent-blue-dark text-white text-xs py-2 rounded-lg font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-1"
         >
           <span>Book Meeting</span>
