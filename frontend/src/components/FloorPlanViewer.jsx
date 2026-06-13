@@ -24,16 +24,52 @@ export default function FloorPlanViewer({
   const svgWidth = 1000;
   const svgHeight = 600;
 
-  const activeStallStyle = useMemo(() => {
-    if (!activeStall) return '';
-    return `
-      #blueprint-wrapper #${activeStall.id} {
-        fill: rgba(234, 88, 12, 0.35) !important;
-        stroke: #ea580c !important;
-        stroke-width: 3px !important;
+  const attendeeStyles = useMemo(() => {
+    let styles = '';
+    
+    stalls.forEach(stall => {
+      let colorClass = 'rgba(37, 99, 235, 0.2)'; // Blue default (Exhibitor)
+      let strokeColor = '#3b82f6';
+      
+      if (stall.category === 'Presentation Area') {
+        colorClass = 'rgba(245, 158, 11, 0.15)'; // Amber
+        strokeColor = '#f59e0b';
+      } else if (stall.category === 'Refreshments') {
+        colorClass = 'rgba(16, 185, 129, 0.15)'; // Emerald
+        strokeColor = '#10b981';
+      } else if (stall.category === 'Restrooms') {
+        colorClass = 'rgba(56, 189, 248, 0.15)'; // Sky
+        strokeColor = '#38bdf8';
       }
-    `;
-  }, [activeStall]);
+      
+      styles += `
+        #blueprint-wrapper [id="${stall.id}" i] {
+          fill: ${colorClass} !important;
+          stroke: ${strokeColor} !important;
+          stroke-width: 2px !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+        }
+        #blueprint-wrapper [id="${stall.id}" i]:hover {
+          fill: rgba(234, 88, 12, 0.25) !important;
+          stroke: #ea580c !important;
+        }
+      `;
+    });
+    
+    if (activeStall) {
+      styles += `
+        #blueprint-wrapper [id="${activeStall.id}" i] {
+          fill: rgba(234, 88, 12, 0.45) !important;
+          stroke: #ea580c !important;
+          stroke-width: 3.5px !important;
+          filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.4)) !important;
+        }
+      `;
+    }
+    
+    return styles;
+  }, [stalls, activeStall]);
 
   // Fit to screen initial load & reset
   const handleResetZoom = () => {
@@ -258,8 +294,8 @@ export default function FloorPlanViewer({
   return (
     <div className="relative w-full h-full min-h-[450px] md:min-h-[550px] bg-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-2xl flex flex-col">
       {/* Dynamic inline SVG styling injection */}
-      {renderActiveSvgContent && activeStall && (
-        <style dangerouslySetInnerHTML={{ __html: activeStallStyle }} />
+      {renderActiveSvgContent && (
+        <style dangerouslySetInnerHTML={{ __html: attendeeStyles }} />
       )}
 
       {/* HUD Control Indicators */}
