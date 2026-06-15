@@ -2,7 +2,7 @@ node_modules/
 .env
 dist/
 .vite/
-main/frontend/node_modules/
-main/frontend/dist/
-main/backend/node_modules/
-main/backend/.env
+frontend/node_modules/
+frontend/dist/
+backend/node_modules/
+backend/.env
